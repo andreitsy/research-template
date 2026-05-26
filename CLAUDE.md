@@ -60,12 +60,12 @@ All numerics integrate the Schrodinger equation in the form
 ## Directory layout
 
 ```
-_template/
+research-template/
   README.md  CLAUDE.md  LICENSE  .gitignore
   manuscript/                 # LaTeX paper (REVTeX / PRA)
     main.tex  biblio.bib  Makefile  figs/
   theory/                     # analytical derivation, one file per step
-    plan.md  step1_exact_solution.md
+    plan.md  step1_exact_solution.md  two_level.nb
   numerics/
     fortran/                  # fpm package `two_level`
     python/                   # package `two_level`
@@ -78,7 +78,9 @@ Holds the analytical calculation split into small, independently checkable
 steps (`stepN_*.md`), tracked from `theory/plan.md`. Do the main derivation
 work here; `plan.md` also lists extension exercises (detuning term, open-system
 decay channel). Each step ends with a "Numerical checks" section pointing at
-the test that verifies it.
+the test that verifies it. `two_level.nb` is a Mathematica notebook companion
+for interactive symbolic work (the scripted equivalent is
+`numerics/mathematica/two_level.wls`).
 
 ## Numerics (`numerics/`)
 
@@ -161,7 +163,7 @@ of the box, and `numerics/python/run.py` rewrites it. Build with `make` (wraps
 
 ## Adapting the template for a new project
 
-1. `cp -r projects/_template projects/<new_project>`.
+1. `cp -r research-template projects/<new_project>`.
 2. Rename packages: `two_level` (Fortran module + Python package + `fpm.toml`
    `name`) and `two-level-template` (Python `pyproject.toml` `name`).
 3. Replace the model: edit `build_hamiltonian` / `hamiltonian`, the initial
