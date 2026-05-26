@@ -1,0 +1,472 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     17034,        464]
+NotebookOptionsPosition[     13406,        408]
+NotebookOutlinePosition[     13798,        424]
+CellTagsIndexPosition[     13755,        421]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Two-Level System: Symbolic and Numerical Verification", "Title",
+ CellChangeTimes->{{3.9*^9, 
+  3.9*^9}},ExpressionUUID->"f7877f37-a43e-4bac-bf4e-2a2a7465c152"],
+
+Cell[TextData[{
+ "Verification of the canonical two-level (Rabi) template model\n\n",
+ StyleBox["Hamiltonian:",
+  FontWeight->"Bold"],
+ "  H = \[Omega] ( |\[UpArrow]\[RightAngleBracket]\[LeftAngleBracket]\
+\[DownArrow]| + \
+|\[DownArrow]\[RightAngleBracket]\[LeftAngleBracket]\[UpArrow]| ) = \[Omega] \
+\[Sigma]\!\(\*SubscriptBox[\(\\ \), \(x\)]\)\n",
+ StyleBox["Initial state:",
+  FontWeight->"Bold"],
+ "  |\[Psi](0)\[RightAngleBracket] = |\[UpArrow]\[RightAngleBracket]\n",
+ StyleBox["Basis ordering:",
+  FontWeight->"Bold"],
+ "  index 1 = |\[UpArrow]\[RightAngleBracket],  index 2 = |\[DownArrow]\
+\[RightAngleBracket]\n\n",
+ "This notebook checks the exact propagator ",
+ Cell[BoxData[
+  FormBox[
+   SuperscriptBox["e", 
+    RowBox[{"-", "i", " ", "H", " ", "t"}]], TraditionalForm]],ExpressionUUID->
+  "3540c277-9c03-49b1-9596-0416c483e9a9"],
+ " against the closed-form Rabi solution and against an independent ",
+ StyleBox["NDSolve",
+  FontSlant->"Italic"],
+ " integration. Each check prints PASS/FAIL; the notebook exits with code 1 \
+if any check fails (when run via ",
+ StyleBox["wolframscript",
+  FontSlant->"Italic"],
+ ")."
+}], "Text",ExpressionUUID->"cbcf581b-fac5-4dd8-a3f5-57774db8d8cb"],
+
+Cell[CellGroupData[{
+
+Cell["Setup: Status Tracking and Reporter", "Section",ExpressionUUID->"21705d30-f285-4506-89f8-03bb6f6ed61f"],
+
+Cell["\<\
+A simple PASS/FAIL reporter that updates a global success flag.\
+\>", "Text",ExpressionUUID->"4936a4e5-fd9d-4e95-b6f4-374b7fd5e782"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"allOK", "=", "True"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"report", "[", 
+    RowBox[{"label_", ",", "ok_"}], "]"}], ":=", 
+   RowBox[{"(", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Print", "[", 
+      RowBox[{
+       RowBox[{"If", "[", 
+        RowBox[{"ok", ",", "\"\<[PASS] \>\"", ",", "\"\<[FAIL] \>\""}], "]"}],
+        ",", " ", "label"}], "]"}], ";", "\[IndentingNewLine]", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{"!", " ", "ok"}], ",", " ", 
+       RowBox[{"allOK", "=", "False"}]}], "]"}], ";"}], "\[IndentingNewLine]",
+     ")"}]}], ";"}]}], "Input",ExpressionUUID->"6f1991c8-f607-4736-9120-\
+1d773c3570f8"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Operators and Initial State", "Section",ExpressionUUID->"bf9db668-ef79-4351-8ecd-7708d73e923a"],
+
+Cell[TextData[{
+ "Define ",
+ StyleBox["\[Sigma]\!\(\*SubscriptBox[\(\\ \), \(x\)]\)",
+  FontWeight->"Bold"],
+ ", the Hamiltonian, and the computational-basis kets."
+}], "Text",ExpressionUUID->"773df85a-4fba-49ca-aa46-43ac865ff5a7"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"omega", "=", 
+   RowBox[{"Symbol", "[", "\"\<omega\>\"", "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sx", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "1"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", "0"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"H", "=", 
+   RowBox[{"omega", " ", "sx"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"up", "=", 
+   RowBox[{"{", 
+    RowBox[{"1", ",", "0"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"down", "=", 
+   RowBox[{"{", 
+    RowBox[{"0", ",", "1"}], "}"}]}], ";"}]}], "Input",ExpressionUUID->\
+"f99ab248-4889-4adb-b778-6f491f24e970"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Exact Propagator", "Section",ExpressionUUID->"74086c61-d1eb-402d-b9bf-9eccc4651661"],
+
+Cell[TextData[{
+ "Compute |\[Psi](t)\[RightAngleBracket] = ",
+ Cell[BoxData[
+  FormBox[
+   SuperscriptBox["e", 
+    RowBox[{"-", "i", " ", "H", " ", "t"}]], TraditionalForm]],ExpressionUUID->
+  "3b699eea-e907-4745-9156-b5706609330c"],
+ " |\[UpArrow]\[RightAngleBracket] and compare against the closed-form ( cos(\
+\[Omega]t), \[Minus]i sin(\[Omega]t) )."
+}], "Text",ExpressionUUID->"81952aa9-913a-4e34-81ae-86dc460c46df"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"psit", "=", 
+   RowBox[{"FullSimplify", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"MatrixExp", "[", 
+       RowBox[{
+        RowBox[{"-", "I"}], " ", "H", " ", "t"}], "]"}], ".", "up"}], ",", 
+     " ", 
+     RowBox[{"Assumptions", "->", 
+      RowBox[{
+       RowBox[{"omega", "\[Element]", "Reals"}], "&&", 
+       RowBox[{"t", "\[Element]", "Reals"}]}]}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"psiExact", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"Cos", "[", 
+      RowBox[{"omega", " ", "t"}], "]"}], ",", 
+     RowBox[{
+      RowBox[{"-", "I"}], " ", 
+      RowBox[{"Sin", "[", 
+       RowBox[{"omega", " ", "t"}], "]"}]}]}], "}"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"report", "[", 
+  RowBox[{
+  "\"\<psi(t) = MatrixExp[-i H t]|up> equals (cos wt, -i sin wt)\>\"", ",", 
+   "\[IndentingNewLine]", 
+   RowBox[{"FullSimplify", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"psit", "-", "psiExact"}], "==", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0"}], "}"}]}], ",", " ", 
+     RowBox[{"Assumptions", "->", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"omega", ",", "t"}], "}"}], "\[Element]", "Reals"}]}]}], 
+    "]"}]}], "]"}]}], "Input",
+ CellLabel->"In[27]:=",ExpressionUUID->"da2eea5c-a345-4a76-b6db-dff7abba1574"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"[PASS] \"\>", 
+   "\[InvisibleSpace]", "\<\"psi(t) = MatrixExp[-i H t]|up> equals (cos wt, \
+-i sin wt)\"\>"}],
+  SequenceForm[
+  "[PASS] ", "psi(t) = MatrixExp[-i H t]|up> equals (cos wt, -i sin wt)"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9888082091600637`*^9},
+ CellLabel->
+  "During evaluation of \
+In[27]:=",ExpressionUUID->"89107706-2744-404d-91ca-adfd4e7ff1e4"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Observables", "Section",ExpressionUUID->"c413165b-ebc6-4196-9682-de3559c286a3"],
+
+Cell[CellGroupData[{
+
+Cell["Population in |\[DownArrow]\[RightAngleBracket]", "Subsection",ExpressionUUID->"d101d8d5-d546-4d6a-84a7-21b37588d366"],
+
+Cell[TextData[{
+ StyleBox["P",
+  FontSlant->"Italic"],
+ "\nStyleBox[\"\", FontSlant -> \"Italic\"]",
+ "\[DownArrow]",
+ "(",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ") = sin\!\(\*SuperscriptBox[\(\\ \), \(2\)]\)(\[Omega]",
+ StyleBox["t",
+  FontSlant->"Italic"]
+}], ").",ExpressionUUID->"c85d397b-f7d7-40e4-9f49-edcedfc78e17"],
+
+Cell["Text", "Input",ExpressionUUID->"780ec3f1-03c4-4b8f-b0cd-2e44f11a6616"],
+
+Cell["Open", "Input",ExpressionUUID->"f12e3c03-927a-4842-8f06-b4346154c3c0"]
+}, Cell[BoxData[{
+  RowBox[{RowBox[{
+      "pDown", "=", 
+       RowBox[{"FullSimplify", "[", 
+         RowBox[{SuperscriptBox[
+           RowBox[{"Abs", "[", 
+              RowBox[{"psit", "[", RowBox[{"[", "2", "]"}], "]"}], "]"}], 
+            "2"], ",", " ", 
+           RowBox[{"Assumptions", "->", 
+             RowBox[{RowBox[{"{", RowBox[{"omega", ",", "t"}], "}"}], 
+               "\[Element]", "Reals"}]}]}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"report", "[", 
+     RowBox[{"\"P_down(t) = sin^2(omega t)\"", ",", "\[IndentingNewLine]", 
+       RowBox[{"FullSimplify", "[", 
+         RowBox[{RowBox[{
+            RowBox[{"pDown", "-", SuperscriptBox[
+               RowBox[{"Sin", "[", RowBox[{"omega", " ", "t"}], "]"}], "2"]}],
+              "==", "0"}], ",", " ", 
+           RowBox[{"Assumptions", "->", 
+             RowBox[{RowBox[{"{", RowBox[{"omega", ",", "t"}], "}"}], 
+               "\[Element]", "Reals"}]}]}], "]"}]}], "]"}]}], "Input"]]],
+
+Cell[CellGroupData[{
+
+Cell["Z-Polarization", "Subsection",ExpressionUUID->"2074eff4-3e04-49ff-a3a9-49c8169c6482"],
+
+Cell[TextData[{
+ "\[LeftAngleBracket]\[Sigma]\!\(\*SubscriptBox[\(\\ \), \(z\)]\)\
+\[RightAngleBracket](",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ") = cos(2 \[Omega]",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ")."
+}], "Text",ExpressionUUID->"bc14f17f-b531-4490-9f74-7b3819f05841"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"sigmaZ", "=", 
+   RowBox[{"FullSimplify", "[", 
+    RowBox[{
+     RowBox[{
+      SuperscriptBox[
+       RowBox[{"Abs", "[", 
+        RowBox[{"psit", "[", 
+         RowBox[{"[", "1", "]"}], "]"}], "]"}], "2"], "-", 
+      SuperscriptBox[
+       RowBox[{"Abs", "[", 
+        RowBox[{"psit", "[", 
+         RowBox[{"[", "2", "]"}], "]"}], "]"}], "2"]}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"Assumptions", "->", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"omega", ",", "t"}], "}"}], "\[Element]", "Reals"}]}]}], 
+    "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"report", "[", 
+  RowBox[{"\"\<<sigma_z>(t) = cos(2 omega t)\>\"", ",", "\[IndentingNewLine]", 
+   RowBox[{"FullSimplify", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"sigmaZ", "-", 
+       RowBox[{"Cos", "[", 
+        RowBox[{"2", " ", "omega", " ", "t"}], "]"}]}], "==", "0"}], ",", " ", 
+     RowBox[{"Assumptions", "->", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"omega", ",", "t"}], "}"}], "\[Element]", "Reals"}]}]}], 
+    "]"}]}], "]"}]}], "Input",ExpressionUUID->"0c14f0a7-f8e5-438c-a679-\
+7a37a05fd0e5"],
+
+Cell["Open", "Input",ExpressionUUID->"00b63969-c7ac-4336-abca-81d877a05204"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Independent Numerical Cross-Check (NDSolve)", "Section",ExpressionUUID->"d4a73543-6005-4bc1-a61b-e74da9e3f932"],
+
+Cell[TextData[{
+ "Integrate the Schr\[ODoubleDot]dinger equation directly with ",
+ StyleBox["NDSolve",
+  FontSlant->"Italic"],
+ " and compare the resulting ",
+ StyleBox["P",
+  FontSlant->"Italic"],
+ "\nStyleBox[\"\", FontSlant -> \"Italic\"]",
+ "\[DownArrow]",
+ "(",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ") against the analytic sin\!\(\*SuperscriptBox[\(\\ \), \(2\)]\)(\[Omega]",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ") on a dense grid over [0, ",
+ StyleBox["t",
+  FontSlant->"Italic"],
+ ""
+}], "end",ExpressionUUID->"f742dcd7-6910-4aab-ba23-b81d41273a06"],
+
+Cell["\<\
+]. Requires max pointwise error < 1\[Times]10\!\(\*SuperscriptBox[\(\\ \), \
+\(-6\)]\).\
+\>", "Input",ExpressionUUID->"5028c7db-0afc-494e-80af-1c86058b1c8a"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"w", "=", "0.7"}], ",", 
+      RowBox[{"tend", "=", "5.0"}], ",", "c1", ",", "c2", ",", "sol", ",", 
+      "num", ",", "exact", ",", "err"}], "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"sol", "=", 
+      RowBox[{"NDSolve", "[", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"I", " ", 
+            RowBox[{
+             RowBox[{"c1", "'"}], "[", "t", "]"}]}], "==", 
+           RowBox[{"w", " ", 
+            RowBox[{"c2", "[", "t", "]"}]}]}], ",", " ", 
+          RowBox[{
+           RowBox[{"I", " ", 
+            RowBox[{
+             RowBox[{"c2", "'"}], "[", "t", "]"}]}], "==", 
+           RowBox[{"w", " ", 
+            RowBox[{"c1", "[", "t", "]"}]}]}], ",", " ", 
+          RowBox[{
+           RowBox[{"c1", "[", "0", "]"}], "==", "1"}], ",", " ", 
+          RowBox[{
+           RowBox[{"c2", "[", "0", "]"}], "==", "0"}]}], "}"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"{", 
+         RowBox[{"c1", ",", "c2"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"t", ",", "0", ",", "tend"}], "}"}], ",", " ", 
+        RowBox[{"MaxStepSize", "->", "0.001"}], ",", " ", 
+        RowBox[{"AccuracyGoal", "->", "10"}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{"err", "=", 
+      RowBox[{"Max", "@", 
+       RowBox[{"Table", "[", "\[IndentingNewLine]", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"num", "=", 
+           SuperscriptBox[
+            RowBox[{
+             RowBox[{"Abs", "[", 
+              RowBox[{
+               RowBox[{"c2", "[", "t", "]"}], "/.", " ", "sol"}], "]"}], "[", 
+             
+             RowBox[{"[", "1", "]"}], "]"}], "2"]}], ";", 
+          "\[IndentingNewLine]", 
+          RowBox[{"exact", "=", 
+           SuperscriptBox[
+            RowBox[{"Sin", "[", 
+             RowBox[{"w", " ", "t"}], "]"}], "2"]}], ";", 
+          "\[IndentingNewLine]", 
+          RowBox[{"Abs", "[", 
+           RowBox[{"num", "-", "exact"}], "]"}]}], ",", " ", 
+         RowBox[{"{", 
+          RowBox[{"t", ",", "0", ",", "tend", ",", "0.05"}], "}"}]}], 
+        "]"}]}]}], ";", "\[IndentingNewLine]", 
+     RowBox[{"report", "[", 
+      RowBox[{
+       RowBox[{
+       "\"\<NDSolve P_down matches sin^2(omega t) (max_err < 1e-6), err=\>\"",
+         "<>", 
+        RowBox[{"ToString", "[", 
+         RowBox[{"CForm", "[", "err", "]"}], "]"}]}], ",", " ", 
+       RowBox[{"err", "<", 
+        SuperscriptBox["10", 
+         RowBox[{"-", "6"}]]}]}], "]"}]}]}], "]"}], ";"}]], "Input",Expression\
+UUID->"5dbbaae7-6324-4678-a98a-16fc28d583e2"]
+}, "Text"]]
+}, Open  ]]
+},
+WindowSize->{1440, 780},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+FrontEndVersion->"13.1 for Mac OS X ARM (64-bit) (June 16, 2022)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"f5ea67af-b0af-4662-97e1-c9817c35cf92"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 166, 2, 98, "Title",ExpressionUUID->"f7877f37-a43e-4bac-bf4e-2a2a7465c152"],
+Cell[749, 26, 1201, 29, 196, "Text",ExpressionUUID->"cbcf581b-fac5-4dd8-a3f5-57774db8d8cb"],
+Cell[CellGroupData[{
+Cell[1975, 59, 109, 0, 67, "Section",ExpressionUUID->"21705d30-f285-4506-89f8-03bb6f6ed61f"],
+Cell[2087, 61, 142, 2, 35, "Text",ExpressionUUID->"4936a4e5-fd9d-4e95-b6f4-374b7fd5e782"],
+Cell[2232, 65, 706, 19, 115, "Input",ExpressionUUID->"6f1991c8-f607-4736-9120-1d773c3570f8"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2975, 89, 101, 0, 67, "Section",ExpressionUUID->"bf9db668-ef79-4351-8ecd-7708d73e923a"],
+Cell[3079, 91, 231, 5, 35, "Text",ExpressionUUID->"773df85a-4fba-49ca-aa46-43ac865ff5a7"],
+Cell[3313, 98, 738, 24, 115, "Input",ExpressionUUID->"f99ab248-4889-4adb-b778-6f491f24e970"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4088, 127, 90, 0, 67, "Section",ExpressionUUID->"74086c61-d1eb-402d-b9bf-9eccc4651661"],
+Cell[4181, 129, 421, 9, 35, "Text",ExpressionUUID->"81952aa9-913a-4e34-81ae-86dc460c46df"],
+Cell[CellGroupData[{
+Cell[4627, 142, 1324, 41, 94, "Input",ExpressionUUID->"da2eea5c-a345-4a76-b6db-dff7abba1574"],
+Cell[5954, 185, 430, 11, 24, "Print",ExpressionUUID->"89107706-2744-404d-91ca-adfd4e7ff1e4"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6433, 202, 85, 0, 67, "Section",ExpressionUUID->"c413165b-ebc6-4196-9682-de3559c286a3"],
+Cell[CellGroupData[{
+Cell[6543, 206, 124, 0, 54, "Subsection",ExpressionUUID->"d101d8d5-d546-4d6a-84a7-21b37588d366"],
+Cell[6670, 208, 324, 11, 70, ").",ExpressionUUID->"c85d397b-f7d7-40e4-9f49-edcedfc78e17"],
+Cell[6997, 221, 76, 0, 70, "Input",ExpressionUUID->"780ec3f1-03c4-4b8f-b0cd-2e44f11a6616"],
+Cell[7076, 223, 76, 0, 70, "Input",ExpressionUUID->"f12e3c03-927a-4842-8f06-b4346154c3c0"]
+}, Cell[BoxData[{RowBox[{RowBox[{"pDown", "=", RowBox[{"FullSimplify", "[", RowBox[{SuperscriptBox[RowBox[{"Abs", "[", RowBox[{"psit", "[", RowBox[{"[", "2", "]"}], "]"}], "]"}], "2"], ",", " ", RowBox[{"Assumptions", "->", RowBox[{RowBox[{"{", RowBox[{"omega", ",", "t"}], "}"}], "\[Element]", "Reals"}]}]}], "]"}]}], ";"}], "\[IndentingNewLine]", RowBox[{"report", "[", RowBox[{"\"P_down(t) = sin^2(omega t)\"", ",", "\[IndentingNewLine]", RowBox[{"FullSimplify", "[", RowBox[{RowBox[{RowBox[{"pDown", "-", SuperscriptBox[RowBox[{"Sin", "[", RowBox[{"omega", " ", "t"}], "]"}], "2"]}], "==", "0"}], ",", " ", RowBox[{"Assumptions", "->", RowBox[{RowBox[{"{", RowBox[{"omega", ",", "t"}], "}"}], "\[Element]", "Reals"}]}]}], "]"}]}], "]"}]}], "Input"]]],
+Cell[CellGroupData[{
+Cell[8159, 249, 91, 0, 38, "Subsection",ExpressionUUID->"2074eff4-3e04-49ff-a3a9-49c8169c6482"],
+Cell[8253, 251, 280, 9, 35, "Text",ExpressionUUID->"bc14f17f-b531-4490-9f74-7b3819f05841"],
+Cell[8536, 262, 1146, 33, 98, "Input",ExpressionUUID->"0c14f0a7-f8e5-438c-a679-7a37a05fd0e5"],
+Cell[9685, 297, 76, 0, 30, "Input",ExpressionUUID->"00b63969-c7ac-4336-abca-81d877a05204"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9810, 303, 117, 0, 67, "Section",ExpressionUUID->"d4a73543-6005-4bc1-a61b-e74da9e3f932"],
+Cell[9930, 305, 563, 19, 70, "end",ExpressionUUID->"f742dcd7-6910-4aab-ba23-b81d41273a06"],
+Cell[10496, 326, 167, 3, 70, "Input",ExpressionUUID->"5028c7db-0afc-494e-80af-1c86058b1c8a"],
+Cell[10666, 331, 2712, 73, 70, "Input",ExpressionUUID->"5dbbaae7-6324-4678-a98a-16fc28d583e2"]
+}, "Text"]]
+}, Open  ]]
+}
+]
+*)
+
