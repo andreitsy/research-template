@@ -48,7 +48,7 @@ This template is **standalone**: it is not a uv workspace member and not a git
 submodule. To start a new project:
 
 ```bash
-cp -r projects/_template projects/<new_project>
+cp -r research-template projects/<new_project>
 ```
 
 Then rename the packages (`two_level` / `two-level-template`), update titles in
