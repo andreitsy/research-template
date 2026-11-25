@@ -10,9 +10,11 @@ __pycache__/
 # Fortran package manager
 build/
 
-# Numerical output (keep the directory, drop the data)
-results/*
-!results/.gitkeep
+# Numerical output (keep each stack's results/ directory, drop the data).
+# A pattern with an inner slash is anchored at the repo root, so the nested
+# numerics/*/results/ directories need the leading **/.
+**/results/*
+!**/results/.gitkeep
 
 # LaTeX auxiliary files
 *.aux
@@ -29,6 +31,7 @@ results/*
 *.synctex.gz
 *.toc
 *.vrb
+*Notes.bib
 
 # OS / editor
 .DS_Store
